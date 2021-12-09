@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: splunk
+  namespace: lansplunk
+spec:
+  selector:
+    matchLabels:
+      app: splunk
+  template:
+    metadata:
+      labels:
+        app: splunk
+    spec:
+      containers:
+      - name: splunk
+        image: splunk/splunk:latest
+        env:
+          - name: SPLUNK_START_ARGS
+            value: "--accept-license"
+          - name: SPLUNK_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: splunk-admin
+                key: password
+          - name: SPLUNK_LICENSE_URI
+            value: "Free"
+        resources:
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        ports:
+        - containerPort: 8000
+          name: web
+        - containerPort: 514
+          protocol: UDP
+        - containerPort: 514
+          protocol: TCP
+
+        volumeMounts:
+          - mountPath: /opt/splunk/var
+            name: splunk-data
+          - mountPath: /opt/splunk/etc
+            name: splunk-config
+      volumes:
+        - name: splunk-data
+          persistentVolumeClaim:
+            claimName: splunk-data
+        - name: splunk-config
+          persistentVolumeClaim:
+            claimName: splunk-config
+      nodeSelector:
+        lansplunk: "true"
